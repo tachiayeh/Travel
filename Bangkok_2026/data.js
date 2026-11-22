@@ -95,8 +95,8 @@ const DAYS = [
         d: "EmSphere 是 Phrom Phong 站的新型購物中心，和 EmQuartier、Emporium 組成 EM District。榮泰豬肉麵（Rung Rueang）是米其林必比登推薦的豬肉麵，清湯或冬蔭湯底都好吃。", tags: ["午餐", "米其林必比登"] },
       { t: "13:30 – 15:00", e: "🏬", n: "逛 EM District", q: "EmQuartier Bangkok",
         d: "EmQuartier 的空中花園、Emporium 的 Gourmet Market，有空可以順路逛逛。", tags: ["購物"] },
-      { t: "15:30 – 16:30", e: "🍮", n: "Custard Nakamura", q: "Custard Nakamura Siam Square",
-        d: "在曼谷超人氣的日系烘焙店，招牌是卡士達泡芙和卡士達麵包，奶香濃郁。", tip: "人氣品項下午可能賣完，早點去比較保險。", tags: ["甜點"] },
+      { t: "15:30 – 16:30", e: "🍮", n: "Custard Nakamura", q: "Custard Nakamura Sukhumvit 33/1",
+        d: "位在 Sukhumvit 33/1 巷、離 BTS Phrom Phong 約 4 分鐘的超人氣日系烘焙店，招牌是卡士達泡芙和卡士達麵包，奶香濃郁。", tip: "人氣品項下午可能賣完，早點去比較保險。", tags: ["甜點"] },
       { t: "16:30 – 18:00", e: "🚶", n: "暹羅廣場 Siam Square", q: "Siam Square Bangkok",
         d: "週日的暹羅廣場人潮熱鬧，街頭表演、潮流小店、手搖飲與甜點店很多。", tags: ["逛街"] },
       { t: "18:00 – 21:00", e: "💎", n: "暹羅百麗宮 Siam Paragon", q: "Siam Paragon",
@@ -185,6 +185,190 @@ const DAYS = [
     foods: [
       { e: "🍚", n: "泰式打拋豬飯", w: "Pier 21", p: "加顆荷包蛋，最後一餐的經典選擇。" },
       { e: "🥭", n: "芒果糯米飯", w: "Pier 21 甜點區", p: "離開前再吃一次！" },
+    ],
+  },
+];
+
+// 實用泰語：th 為不含語尾的泰文，依男/女聲加上 ครับ / ค่ะ（問句女聲用 คะ）；音檔在 audio/{id}_{m|f}.mp3
+const PHRASES = [
+  { id: "hello",    zh: "你好",       th: "สวัสดี",         rom: "sà-wàt-dii",        en: "Hello" },
+  { id: "price",    zh: "多少錢？",   th: "ราคาเท่าไหร่",    rom: "raa-khaa thâo-rài", en: "How much is it?", q: true },
+  { id: "discount", zh: "便宜一點",   th: "ลดหน่อยได้ไหม",   rom: "lót nòi dâi mái",   en: "Can you give me a discount?", q: true },
+  { id: "this",     zh: "我要這個",   th: "เอาอันนี้",        rom: "ao an-níi",         en: "I'll take this one." },
+  { id: "thanks",   zh: "謝謝",       th: "ขอบคุณ",          rom: "khàwp-khun",        en: "Thank you" },
+  { id: "nosweet0", zh: "完全不甜",   th: "ไม่หวานเลย",      rom: "mâi wǎan loei",     en: "Not sweet at all" },
+  { id: "nosweet",  zh: "不甜",       th: "ไม่หวาน",         rom: "mâi wǎan",          en: "Not sweet" },
+  { id: "lesssweet",zh: "少糖／微糖", th: "หวานน้อย",        rom: "wǎan nói",          en: "Less sweet" },
+  { id: "nospicy0", zh: "完全不辣",   th: "ไม่เผ็ดเลย",      rom: "mâi phèt loei",     en: "Not spicy at all" },
+  { id: "nospicy",  zh: "不辣",       th: "ไม่เผ็ด",         rom: "mâi phèt",          en: "Not spicy" },
+  { id: "yes",      zh: "是的",       th: "ใช่",             rom: "châi",              en: "Yes" },
+  { id: "no",       zh: "不是",       th: "ไม่ใช่",          rom: "mâi châi",          en: "No" },
+];
+
+// 景點間交通：ROUTES[第幾天-1]["抵達的景點名稱 n"] = 多種方案
+// m 交通方式、s 各段（起點 → 終點）、t 時間、c 四位大人合計交通費、n 備註、b 此方案每人 BTS 票價（用來比較一日券）
+const BTS_DAY_PASS = 160; // BTS 一日券每人價格（2026 參考價，不含金線、MRT、ARL）
+// 票價為 2026 年參考價（BTS ฿17–65、MRT ฿17–44、ARL ฿15–45、快船 ฿16，依距離計），Grab 依時段浮動
+const WALK = (s, t) => [{ m: "🚶 步行", s: [s], t, c: "฿0" }];
+const AIRPORT_RAIL = { m: "🚆 ARL 機場快線 + MRT（最省）", t: "約 60–70 分",
+  c: "約 ฿208（每人 ARL ฿35＋MRT ฿17）", n: "轉乘要走樓梯、天橋，大行李較辛苦；避開早晚尖峰。" };
+const ROUTES = [
+  { // 第一天
+    "前往住宿": [
+      { m: "🚗 Grab（6 人座 GrabCar XL）", s: ["Grab：BKK 機場 Grab 指定上車處（依 App 指示）→ Sib Kao（Sukhumvit 19 巷）"],
+        t: "40–60 分", c: "約 ฿550–750（一台車，含高速公路費）", n: "4 人＋4 件大行李建議叫 XL，一般 GrabCar 放不下。" },
+      { m: "🚕 機場排班計程車", s: ["計程車：BKK 1 樓計程車排班機 → Sib Kao"],
+        t: "40–60 分", c: "約 ฿800–1,000（行李多需 2 台，每台跳表＋機場費 ฿50＋過路費約 ฿75）", n: "上車確認司機跳表（meter）。" },
+      { ...AIRPORT_RAIL, s: ["步行：入境大廳 → B1 ARL Suvarnabhumi 站", "ARL：Suvarnabhumi → Makkasan（約 26 分）",
+        "步行：Makkasan → MRT Phetchaburi（天橋約 5 分）", "MRT 藍線：Phetchaburi → Sukhumvit（1 站）", "步行：MRT Sukhumvit → Sib Kao（約 7 分）"] },
+    ],
+    "101 Sky Track 慢跑": [
+      { m: "🚝 BTS", b: 55, s: ["步行：Sib Kao → BTS Asok（約 5 分）", "BTS 淺綠線：Asok → Punnawithi（7 站，約 15 分）", "步行：Punnawithi 站天橋 → True Digital Park（約 3 分）"],
+        t: "約 25–30 分", c: "約 ฿180–220（每人約 ฿45–55）" },
+      { m: "🚗 Grab", s: ["Grab：Sib Kao → True Digital Park"], t: "25–40 分（傍晚易塞車）", c: "約 ฿180–250（一台車）" },
+    ],
+    "True Digital Park & Cloud 11 逛街晚餐": WALK("步行：Sky Track → True Digital Park 商場 → 天橋 → Cloud 11（約 5–8 分）", "約 5–8 分"),
+    "回 Sib Kao 休息": [
+      { m: "🚝 BTS", b: 55, s: ["步行：Cloud 11 → BTS Punnawithi 或 Udom Suk（約 5 分）", "BTS 淺綠線：Punnawithi → Asok（7 站，約 15 分）", "步行：BTS Asok → Sib Kao（約 5 分）"],
+        t: "約 30 分", c: "約 ฿180–220（每人約 ฿45–55）" },
+      { m: "🚗 Grab", s: ["Grab：Cloud 11 → Sib Kao"], t: "20–35 分", c: "約 ฿180–250（一台車）" },
+    ],
+  },
+  { // 第二天
+    "Healthy Massage Sukhumvit 19 按摩": WALK("步行：Sib Kao → Healthy Massage（同在 Sukhumvit 19 巷）", "約 3–5 分"),
+    "PLATINUM POP 用餐": [
+      { m: "🚝 BTS + 步行", b: 28, s: ["步行：Sukhumvit 19 → BTS Asok（約 3 分）", "BTS 淺綠線：Asok → Chit Lom（3 站，約 6 分）", "步行：Chit Lom 空橋 → CentralWorld → 過 Phetchaburi 路 → Platinum（約 15 分）"],
+        t: "約 25 分", c: "約 ฿112（每人 ฿28）" },
+      { m: "⛴️ 森薩運河船（在地體驗）", s: ["步行：Sib Kao → Asok 碼頭（Sukhumvit 21 巷底、Phetchaburi 路，約 15 分）", "運河船 Khlong Saen Saep：Asok → Pratunam 碼頭（約 10 分）", "步行：Pratunam 碼頭 → Platinum（約 3 分）"],
+        t: "約 30 分", c: "約 ฿56–64（每人約 ฿14–16，船上付現）", n: "船速快會濺水，上下船動作要快。" },
+      { m: "🚗 Grab", s: ["Grab：Sukhumvit 19 → Platinum Fashion Mall"], t: "15–30 分", c: "約 ฿100–150（一台車）" },
+    ],
+    "Big C Supercenter Ratchadamri": WALK("步行：Platinum → Ratchaprarop 路口 → 過 Phetchaburi 路往南 → Big C（約 10–12 分）", "約 10–12 分"),
+    "中央世界購物商場 CentralWorld": WALK("步行：Big C → 天橋過 Ratchadamri 路 → CentralWorld（約 3–5 分）", "約 3–5 分"),
+    "曼谷市立藝術文化中心 BACC ＆ 暹羅廣場": [
+      { m: "🚶 步行（空中走廊）", s: ["步行：CentralWorld → Skywalk 空中走廊 → BTS Siam → BACC（約 15 分，不曬太陽）"], t: "約 15 分", c: "฿0" },
+      { m: "🚝 BTS", b: 25, s: ["步行：CentralWorld → BTS Chit Lom（約 3 分）", "BTS：Chit Lom → National Stadium（2 站，Siam 轉 Silom 線）", "步行：National Stadium 天橋直通 BACC"],
+        t: "約 12 分", c: "約 ฿100（每人 ฿25）" },
+    ],
+    "SWU 國際跳蚤市場 晚餐": [
+      { m: "🚝 BTS + 步行", b: 35, s: ["步行：BACC → BTS National Stadium", "BTS：National Stadium → Asok（5 站，Siam 轉淺綠線，約 12 分）", "步行：BTS Asok → Sukhumvit 23 巷 → SWU 市集（約 10 分）"],
+        t: "約 30 分", c: "約 ฿140（每人 ฿35）" },
+      { m: "🚗 Grab", s: ["Grab：BACC → SWU（Sukhumvit 23）"], t: "30–50 分（週五晚上尖峰）", c: "約 ฿150–220（一台車）" },
+    ],
+    "回 Sib Kao": WALK("步行：SWU 市集 → Sukhumvit 路 → 19 巷 Sib Kao（約 10–12 分）", "約 10–12 分"),
+  },
+  { // 第三天
+    "Healthy Massage Sukhumvit 19 按摩": WALK("步行：Sib Kao → Healthy Massage（同在 Sukhumvit 19 巷）", "約 3–5 分"),
+    "Baan Kuay Tiew Ruathong 泰式船麵": [
+      { m: "🚝 BTS", b: 43, s: ["步行：Sukhumvit 19 → BTS Asok", "BTS 淺綠線：Asok → Victory Monument（7 站，約 15 分）", "步行：Victory Monument 站 → 運河邊船麵巷（約 5 分）"],
+        t: "約 25 分", c: "約 ฿172（每人 ฿43）" },
+      { m: "🚗 Grab", s: ["Grab：Sukhumvit 19 → 勝利紀念碑船麵巷"], t: "25–45 分", c: "約 ฿150–220（一台車）" },
+    ],
+    "Mixt Chatuchak": [
+      { m: "🚝 BTS", b: 32, s: ["步行：船麵巷 → BTS Victory Monument", "BTS 淺綠線：Victory Monument → Mo Chit（4 站，約 8 分）", "步行：Mo Chit 1 號出口 → Mixt（約 5 分）"],
+        t: "約 20 分", c: "約 ฿128（每人 ฿32）" },
+      { m: "🚗 Grab", s: ["Grab：勝利紀念碑 → Mixt Chatuchak"], t: "15–25 分", c: "約 ฿100–150（一台車）" },
+    ],
+    "恰圖恰市集 Chatuchak Weekend Market": WALK("步行：Mixt → 直通恰圖恰 9–19 區（約 2 分）", "約 2 分"),
+    "朱拉隆功夜市（Banthat Thong 美食街一帶）": [
+      { m: "🚇 MRT", s: ["步行：恰圖恰 → MRT Chatuchak Park（約 5 分）", "MRT 藍線：Chatuchak Park → Sam Yan（14 站，約 30 分）", "步行：MRT Sam Yan → Banthat Thong 路（約 10 分）"],
+        t: "約 45 分", c: "約 ฿172（每人約 ฿43）" },
+      { m: "🚝 BTS", b: 45, s: ["步行：恰圖恰 → BTS Mo Chit", "BTS：Mo Chit → National Stadium（8 站，Siam 轉 Silom 線）", "步行：National Stadium → Banthat Thong 路（約 12 分）"],
+        t: "約 40 分", c: "約 ฿180（每人 ฿45）" },
+      { m: "🚗 Grab", s: ["Grab：恰圖恰 → Banthat Thong 路"], t: "30–60 分（週六傍晚塞車）", c: "約 ฿200–300（一台車）" },
+    ],
+    "回 Sib Kao": [
+      { m: "🚇 MRT", s: ["步行：Banthat Thong → MRT Sam Yan（約 10 分）", "MRT 藍線：Sam Yan → Sukhumvit（5 站，約 10 分）", "步行：MRT Sukhumvit → Sib Kao（約 7 分）"],
+        t: "約 30 分", c: "約 ฿116（每人約 ฿29）" },
+      { m: "🚝 BTS", b: 35, s: ["步行：Banthat Thong 路 → BTS National Stadium（約 12 分）", "BTS：National Stadium → Asok（5 站，Siam 轉淺綠線，約 12 分）", "步行：BTS Asok → Sib Kao（約 5 分）"],
+        t: "約 30–35 分", c: "約 ฿140（每人 ฿35）" },
+      { m: "🚗 Grab", s: ["Grab：Banthat Thong → Sib Kao"], t: "20–35 分", c: "約 ฿120–180（一台車）" },
+    ],
+  },
+  { // 第四天
+    "Healthy Massage Sukhumvit 19 按摩": WALK("步行：Sib Kao → Healthy Massage（同在 Sukhumvit 19 巷）", "約 3–5 分"),
+    "EmSphere 購物中心・榮泰豬肉麵": [
+      { m: "🚝 BTS", b: 17, s: ["步行：Sukhumvit 19 → BTS Asok", "BTS 淺綠線：Asok → Phrom Phong（1 站）", "步行：Phrom Phong 天橋直通 EmSphere"],
+        t: "約 12 分", c: "約 ฿68（每人 ฿17）" },
+      { m: "🚶 步行", s: ["步行：Sukhumvit 19 → 沿 Sukhumvit 路往東 → EmSphere（約 1.3 km）"], t: "約 18–20 分", c: "฿0" },
+      { m: "🚗 Grab", s: ["Grab：Sukhumvit 19 → EmSphere"], t: "10–20 分", c: "約 ฿80–120（一台車）" },
+    ],
+    "逛 EM District": WALK("步行：EmSphere → 天橋 → EmQuartier／Emporium（約 3–5 分）", "約 3–5 分"),
+    "Custard Nakamura": [
+      { m: "🚶 步行", s: ["步行：EmQuartier → Sukhumvit 路往 Asok 方向（經 BTS Phrom Phong 下方）→ Sukhumvit 33/1 巷 → Custard Nakamura（約 700 m）"],
+        t: "約 8–10 分", c: "฿0" },
+      { m: "🚗 Grab", s: ["Grab：EmQuartier → Sukhumvit 33/1 Custard Nakamura"], t: "5–15 分", c: "約 ฿60–100（一台車）", n: "距離很近，走路通常比塞車快。" },
+    ],
+    "暹羅廣場 Siam Square": [
+      { m: "🚝 BTS", b: 35, s: ["步行：Custard Nakamura → Sukhumvit 33/1 巷口 → BTS Phrom Phong（約 4 分）", "BTS 淺綠線：Phrom Phong → Siam（5 站，約 12 分）", "步行：BTS Siam 2／4 號出口 → Siam Square（約 3 分）"],
+        t: "約 20–25 分", c: "約 ฿140（每人 ฿35）" },
+      { m: "🚗 Grab", s: ["Grab：Sukhumvit 33/1 → Siam Square"], t: "20–40 分", c: "約 ฿120–180（一台車）" },
+    ],
+    "暹羅百麗宮 Siam Paragon": WALK("步行：Siam Square → 天橋 → Siam Paragon（約 5 分）", "約 5 分"),
+    "回 Sib Kao": [
+      { m: "🚝 BTS", b: 32, s: ["步行：Siam Paragon → BTS Siam（直通）", "BTS 淺綠線：Siam → Asok（4 站，約 8 分）", "步行：BTS Asok → Sib Kao（約 5 分）"],
+        t: "約 20 分", c: "約 ฿128（每人 ฿32）" },
+      { m: "🚗 Grab", s: ["Grab：Siam Paragon → Sib Kao"], t: "15–35 分", c: "約 ฿120–180（一台車）" },
+    ],
+  },
+  { // 第五天
+    "Healthy Massage Sukhumvit 19 按摩": WALK("步行：Sib Kao → Healthy Massage（同在 Sukhumvit 19 巷）", "約 3–5 分"),
+    "River City Bangkok 午餐": [
+      { m: "🚝 BTS + ⛴️ 快船", b: 55, s: ["步行：Sukhumvit 19 → BTS Asok", "BTS：Asok → Saphan Taksin（Siam 轉 Silom 線，約 30 分）", "步行：Saphan Taksin 2 號出口 → Sathorn 碼頭（約 2 分）",
+        "昭披耶河快船（橘旗）：Sathorn → Si Phraya 碼頭（約 10 分）", "步行：Si Phraya 碼頭 → River City（約 3 分）"],
+        t: "約 55 分", c: "約 ฿250–290（每人 BTS 約 ฿47–55＋船 ฿16）", n: "順便體驗湄南河，推薦！" },
+      { m: "🚇 MRT + 步行", s: ["步行：Sib Kao → MRT Sukhumvit（約 7 分）", "MRT 藍線：Sukhumvit → Hua Lamphong（6 站，約 15 分）", "步行：Hua Lamphong → River City（約 15 分，或短程 Grab ฿60）"],
+        t: "約 40 分", c: "約 ฿116（每人約 ฿29）" },
+      { m: "🚗 Grab", s: ["Grab：Sukhumvit 19 → River City"], t: "25–45 分", c: "約 ฿150–250（一台車）" },
+    ],
+    "松瓦路街頭藝術 Song Wat Road": WALK("步行：River City → Talat Noi 老巷（沿途塗鴉）→ Song Wat 路（約 10–15 分）", "約 10–15 分"),
+    "ICONSIAM 晚餐": [
+      { m: "⛴️ 快船 + 免費接駁船", s: ["步行：Song Wat 路 → Ratchawong 碼頭（約 5 分）", "昭披耶河快船（橘旗）：Ratchawong → Sathorn 碼頭（約 15 分）", "ICONSIAM 免費接駁船：Sathorn → ICONSIAM（約 10 分）"],
+        t: "約 40 分", c: "約 ฿64（每人 ฿16，接駁船免費）", n: "橘旗快船約 19:00 收班，傍晚前搭。" },
+      { m: "🚗 Grab", s: ["Grab：Song Wat 路 → ICONSIAM"], t: "20–40 分（過橋易塞）", c: "約 ฿120–200（一台車）" },
+    ],
+    "回 Sib Kao": [
+      { m: "⛴️ 接駁船 + 🚝 BTS", b: 55, s: ["ICONSIAM 免費接駁船 → Sathorn 碼頭（約 10 分）", "步行：Sathorn 碼頭 → BTS Saphan Taksin（約 2 分）", "BTS：Saphan Taksin → Asok（Siam 轉淺綠線，約 30 分）", "步行：BTS Asok → Sib Kao（約 5 分）"],
+        t: "約 55 分", c: "約 ฿190–220（每人約 ฿47–55）" },
+      { m: "🚝 BTS 金線 + BTS", b: 55, s: ["步行：ICONSIAM → BTS 金線 Charoen Nakhon 站（相連）", "BTS 金線：Charoen Nakhon → Krung Thon Buri（2 站）", "BTS：Krung Thon Buri → Asok（Siam 轉淺綠線，約 30 分）", "步行：BTS Asok → Sib Kao（約 5 分）"],
+        t: "約 50 分", c: "約 ฿256–290（每人金線 ฿17＋BTS 約 ฿47–55）" },
+      { m: "🚗 Grab", s: ["Grab：ICONSIAM → Sib Kao"], t: "30–50 分", c: "約 ฿200–300（一台車）" },
+    ],
+  },
+  { // 第六天
+    "SWU International Flea Market": WALK("步行：Sib Kao → Sukhumvit 路 → 23 巷 SWU 市集（約 10–12 分）", "約 10–12 分"),
+    "尚泰叻拋購物中心 Central Ladprao": [
+      { m: "🚇 MRT", s: ["步行：SWU → MRT Sukhumvit（約 8 分）", "MRT 藍線：Sukhumvit → Phahon Yothin（8 站，約 18 分）", "Phahon Yothin 站出口直通 Central Ladprao"],
+        t: "約 30 分", c: "約 ฿140（每人約 ฿35）" },
+      { m: "🚗 Grab", s: ["Grab：Sukhumvit 23 → Central Ladprao"], t: "25–45 分", c: "約 ฿150–250（一台車）" },
+    ],
+    "Union Mall": WALK("步行：Central Ladprao → 地下道過 Lat Phrao 路口 → Union Mall（約 5 分）", "約 5 分"),
+    "Liabduan Danneramit 夜市": [
+      { m: "🚶 步行", s: ["步行：Union Mall → 沿 Phahon Yothin 路往北 → Danneramit 夜市（約 900 m）"], t: "約 12–15 分", c: "฿0" },
+      { m: "🚝 BTS", b: 17, s: ["步行：Union Mall → BTS Ha Yaek Lat Phrao", "BTS 淺綠線：Ha Yaek Lat Phrao → Phahon Yothin 24（1 站）", "步行：Phahon Yothin 24 站 2 號出口 → 夜市（約 5 分）"],
+        t: "約 15 分", c: "約 ฿68（每人 ฿17）" },
+      { m: "🚗 Grab", s: ["Grab：Union Mall → Danneramit 夜市"], t: "5–15 分", c: "約 ฿60–100（一台車）" },
+    ],
+    "蓮花超市 Lotus's（拉拋店）": [
+      { m: "🚗 Grab", s: ["Grab：Danneramit 夜市 → Lotus's（拉拋店）"], t: "10–20 分", c: "約 ฿80–150（一台車）", n: "拉拋一帶有多家 Lotus's，出發前用 Google Map 確認要去哪一家。" },
+      { m: "🚇 MRT", s: ["步行：夜市 → MRT Phahon Yothin（約 10 分）", "MRT 藍線：Phahon Yothin → Lat Phrao（1 站）", "步行：MRT Lat Phrao → Lotus's（依分店位置）"],
+        t: "約 20–25 分", c: "約 ฿68（每人 ฿17）" },
+    ],
+    "回 Sib Kao 整理行李": [
+      { m: "🚗 Grab（推薦，大包小包）", s: ["Grab：Lotus's → Sib Kao"], t: "20–35 分", c: "約 ฿180–250（一台車）" },
+      { m: "🚇 MRT", s: ["步行：Lotus's → MRT Lat Phrao", "MRT 藍線：Lat Phrao → Sukhumvit（7 站，約 15 分）", "步行：MRT Sukhumvit → Sib Kao（約 7 分）"],
+        t: "約 35 分", c: "約 ฿132（每人約 ฿33）", n: "MRT 末班約 24:00。" },
+    ],
+  },
+  { // 第七天
+    "Pier 21 早午餐": WALK("步行：Sib Kao → Sukhumvit 路 → Terminal 21 五樓 Pier 21（約 5–7 分）", "約 5–7 分"),
+    "取行李，前往蘇凡納布機場": [
+      { m: "🚗 Grab（6 人座 GrabCar XL）", s: ["步行：Terminal 21 → Sib Kao 取行李（約 5 分）", "Grab：Sib Kao → BKK 機場出境樓層（4 樓）"],
+        t: "40–60 分", c: "約 ฿550–750（一台車，含高速公路費）", n: "4 人＋大行李建議叫 XL。" },
+      { m: "🚕 計程車", s: ["步行：Terminal 21 → Sib Kao 取行李", "計程車：Sib Kao → BKK 機場"],
+        t: "40–60 分", c: "約 ฿700–900（行李多需 2 台，每台跳表＋過路費約 ฿75）" },
+      { ...AIRPORT_RAIL, s: ["步行：Terminal 21 → Sib Kao 取行李 → MRT Sukhumvit（約 7 分）", "MRT 藍線：Sukhumvit → Phetchaburi（1 站）",
+        "步行：MRT Phetchaburi → ARL Makkasan（天橋約 5 分）", "ARL：Makkasan → Suvarnabhumi（約 26 分）"] },
     ],
   },
 ];
